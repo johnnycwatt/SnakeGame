@@ -3,6 +3,7 @@ import java.awt.event.KeyEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.io.*;
 
 
 public class SnakeGame extends GameEngine{
@@ -18,6 +19,9 @@ public class SnakeGame extends GameEngine{
     int speed = 5;
 
     int appleX, appleY;
+    private int highScore = 0;
+    private final String highScoreFile = "highscore.txt";
+
 
     Random random = new Random();
     boolean gameOver;
@@ -30,12 +34,42 @@ public class SnakeGame extends GameEngine{
 
     public void init(){
         setWindowSize(width, height);
+
         head = loadImage("src/resources/head.png");
         body = loadImage("src/resources/dot.png");
         apple = loadImage("src/resources/apple.png");
         snakeBody.add(new Point(playerX, playerY));
         spawnApple();
+        loadHighScore();
     }
+
+    private void loadHighScore() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(highScoreFile))) {
+            String line = reader.readLine();
+            if (line != null) {
+                highScore = Integer.parseInt(line.trim());
+            }
+        } catch (IOException | NumberFormatException e) {
+            System.out.println("No high score found, starting fresh.");
+        }
+    }
+
+    private void saveHighScore() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(highScoreFile))) {
+            writer.write(String.valueOf(highScore));
+        } catch (IOException e) {
+            System.out.println("Error saving high score.");
+        }
+    }
+
+    private void checkHighScore(){
+        int currentScore = snakeBody.size() - 1;
+        if (currentScore > highScore) {
+            highScore = currentScore;
+            saveHighScore();
+        }
+    }
+
 
     public void keyPressed(KeyEvent event){
         if(event.getKeyCode() == KeyEvent.VK_LEFT && !playerDirection.equals("RIGHT")){
@@ -111,7 +145,7 @@ public class SnakeGame extends GameEngine{
         //Check Collision with the wall
         if (playerX < 0 || playerX >= width || playerY < 50 || playerY >= height) {
             currentState = GameState.GAME_OVER;
-            return;
+            checkHighScore();
         }
     }
 
@@ -146,6 +180,7 @@ public class SnakeGame extends GameEngine{
         drawText(width / 2 - 100, height/2, "Press ENTER to restart", 24);
         changeColor(Color.WHITE);
         drawText(width / 2 - 100, height / 2 + 40, "Score: " + (snakeBody.size() - 1), 20);
+        drawText(width / 2 - 100, height / 2 + 70, "High Score: " + highScore, 20);
     }
 
     private void drawGame(){
@@ -155,7 +190,7 @@ public class SnakeGame extends GameEngine{
         drawSolidRectangle(0, 0, width, 50);
         changeColor(Color.WHITE);
         drawText(20, 30, "Score: " + (snakeBody.size() - 1), 20);
-
+        drawText(250, 30, "High Score: " + highScore, 20);
 
         //Fruit
         drawImage(apple, appleX, appleY);
