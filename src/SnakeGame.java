@@ -1,5 +1,6 @@
 import java.awt.*;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -16,7 +17,7 @@ public class SnakeGame extends GameEngine{
 
     int playerX = 50;
     int playerY = 100;
-    int speed = 5;
+    int speed = 10;
 
     int appleX, appleY;
     private int highScore = 0;
@@ -29,7 +30,7 @@ public class SnakeGame extends GameEngine{
     String playerDirection = "RIGHT";
     List<Point> snakeBody = new ArrayList<>();
 
-    private enum GameState {INTRO, PLAYING, GAME_OVER}
+    private enum GameState {INTRO, HELP, PLAYING, GAME_OVER}
     private GameState currentState =GameState.INTRO;
 
     public void init(){
@@ -83,17 +84,41 @@ public class SnakeGame extends GameEngine{
             playerDirection = "DOWN";
         }
 
+
         if (event.getKeyCode() == KeyEvent.VK_ENTER) {
-            if (currentState == GameState.INTRO || currentState == GameState.GAME_OVER) {
+            if (currentState == GameState.GAME_OVER || currentState == GameState.INTRO){
                 currentState = GameState.PLAYING;
                 resetGame();
             }
         }
     }
 
+    @Override
+    public void mouseClicked(MouseEvent event){
+        int x = event.getX();
+        int y = event.getY();
+
+        if (currentState == GameState.INTRO){
+            // START BUTTON:
+            if (x >= width / 2 - 50 && x<= width / 2 + 70 && y >= height / 2 - 25 && y<= height / 2 + 25) {
+                currentState = GameState.PLAYING;
+                resetGame();
+            }
+            // HELP BUTTON:
+            else if (x >= width - 60 && x<= width - 10 && y>= 10 && y <= 40){
+                currentState = GameState.HELP;
+            }
+        } else if (currentState == GameState.HELP) {
+            // BACK BUTTON:
+            if (x >= width / 2 - 50 && x <= width / 2 + 50 && y >= height -60 && y<= height - 30){
+                currentState = GameState.INTRO;
+            }
+        }
+    }
+
     public void spawnApple(){
-        appleX = random.nextInt(width / 5) * 5;
-        appleY = 50 + random.nextInt((height - 50) / 5) * 5;
+        appleX = 20 + random.nextInt(90) *5;
+        appleY = 75 + random.nextInt(80) * 5;
     }
 
     public void growSnake(){
@@ -103,49 +128,52 @@ public class SnakeGame extends GameEngine{
 
     @Override
     public void update(double dt) {
-        int prevX = playerX;
-        int prevY = playerY;
+        if (currentState == GameState.PLAYING) {
+            int prevX = playerX;
+            int prevY = playerY;
 
-        //Player Movement
-        if(playerDirection.equals("LEFT")){
-            playerX -= speed;
-        }
-        if(playerDirection.equals("RIGHT")){
-            playerX += speed;
-        }
-        if(playerDirection.equals("UP")){
-            playerY -= speed;
-        }
-        if(playerDirection.equals("DOWN")){
-            playerY += speed;
-        }
-
-        for(int i = snakeBody.size() - 1;i >0; i--){
-            snakeBody.set(i, new Point(snakeBody.get(i-1)));
-        }
-
-        if(!snakeBody.isEmpty()){
-            snakeBody.set(0, new Point(prevX, prevY));
-        }
-
-        //Check Collision with Fruit
-        if (Math.abs(playerX - appleX) <= speed && Math.abs(playerY - appleY) <= speed) {
-            spawnApple();
-            growSnake();
-        }
-
-        //Check Collision with Body
-        for (int i = 1; i < snakeBody.size(); i++){
-            if(playerX == snakeBody.get(i).x && playerY== snakeBody.get(i).y) {
-                currentState = GameState.GAME_OVER;
-                break;
+            //Player Movement
+            if (playerDirection.equals("LEFT")) {
+                playerX -= speed;
             }
-        }
+            if (playerDirection.equals("RIGHT")) {
+                playerX += speed;
+            }
+            if (playerDirection.equals("UP")) {
+                playerY -= speed;
+            }
+            if (playerDirection.equals("DOWN")) {
+                playerY += speed;
+            }
 
-        //Check Collision with the wall
-        if (playerX < 0 || playerX >= width || playerY < 50 || playerY >= height) {
-            currentState = GameState.GAME_OVER;
-            checkHighScore();
+            for (int i = snakeBody.size() - 1; i > 0; i--) {
+                snakeBody.set(i, new Point(snakeBody.get(i - 1)));
+            }
+
+            if (!snakeBody.isEmpty()) {
+                snakeBody.set(0, new Point(prevX, prevY));
+            }
+
+            //Check Collision with Fruit
+            if (Math.abs(playerX - appleX) <= speed && Math.abs(playerY - appleY) <= speed) {
+                spawnApple();
+                growSnake();
+            }
+
+            //Check Collision with Body
+            for (int i = 1; i < snakeBody.size(); i++) {
+                if (playerX == snakeBody.get(i).x && playerY == snakeBody.get(i).y) {
+                    currentState = GameState.GAME_OVER;
+                    break;
+                }
+            }
+
+            //Check Collision with the wall
+            if (playerX < 0 || playerX >= width || playerY < 50 || playerY >= height) {
+                currentState = GameState.GAME_OVER;
+                checkHighScore();
+
+            }
         }
     }
 
@@ -158,6 +186,9 @@ public class SnakeGame extends GameEngine{
             case PLAYING:
                 drawGame();
                 break;
+            case HELP:
+                drawHelpScreen();
+                break;
             case GAME_OVER:
                 drawGameOverScreen();
                 break;
@@ -168,8 +199,31 @@ public class SnakeGame extends GameEngine{
         changeBackgroundColor(black);
         clearBackground(500, 500);
         changeColor(Color.GREEN);
-        drawText(width / 2 - 100, height/3, "SNAKE GAME", 30);
-        drawText(width / 2 - 110, height/2, "Press ENTER to start", 24);
+        drawText(width / 2 - 80, height/3, "SNAKE GAME", 30);
+
+        changeColor(Color.GREEN);
+        drawSolidRectangle(width / 2 - 50, height / 2 - 25, 120, 50);
+        changeColor(Color.BLACK);
+        drawText(width / 2 - 40, height / 2 + 5, "START GAME", 15);
+
+        changeColor(Color.GREEN);
+        drawSolidRectangle(width - 60, 10, 50, 30);
+        changeColor(Color.BLACK);
+        drawText(width - 55, 30, "HELP", 15);
+    }
+
+    private void drawHelpScreen(){
+        changeBackgroundColor(black);
+        clearBackground(width, height);
+        changeColor(Color.WHITE);
+        drawText(50, 100, "How to Play:", 24);
+        drawText(50, 150, "- Use arrow keys to move", 18);
+        drawText(50, 180, "- Eat the fruit to get points", 18);
+        drawText(50, 210, "- You die if you hit the wall or yourself", 18);
+        changeColor(Color.RED);
+        drawSolidRectangle(width / 2 - 50, height - 60, 100, 30);
+        changeColor(Color.WHITE);
+        drawText(width / 2 - 30, height - 40, "BACK", 18);
     }
 
     private void drawGameOverScreen() {
